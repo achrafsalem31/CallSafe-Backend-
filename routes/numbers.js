@@ -67,7 +67,7 @@ router.get('/check/:phone', async (req, res) => {
 // GET /api/numbers
 // Get all reported numbers (Admin only)
 // ===================================
-router.get('/', [verifyToken, isAdmin], async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const { limit = 100, status } = req.query;
         
