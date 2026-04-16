@@ -8,6 +8,15 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+const app = express();
+
+// CORS
+app.use(cors({
+    origin: ['http://127.0.0.1:5500', 'http://localhost:5500'],
+    credentials: true
+}));
+
+
 // Import Routes
 const authRoutes = require('./routes/auth');
 const quizRoutes = require('./routes/quiz');
@@ -16,7 +25,7 @@ const userRoutes = require('./routes/users');
 const reportRoutes = require('./routes/reports');
 const numbersRoutes = require('./routes/numbers');
 
-const app = express();
+
 const PORT = process.env.PORT || 3000;
 
 // ===================================
@@ -26,11 +35,6 @@ const PORT = process.env.PORT || 3000;
 // Security Headers
 app.use(helmet());
 
-// CORS
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5500',
-    credentials: true
-}));
 
 // Body Parser
 app.use(express.json());
