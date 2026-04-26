@@ -13,18 +13,19 @@ const { verifyToken, isAdmin, optionalAuth } = require('../middleware/auth');
 // ===================================
 router.get('/check/:phone', async (req, res) => {
     try {
-        const phone = decodeURIComponent(req.params.phone);
-        
+        let phone = decodeURIComponent(req.params.phone || '');
+
+        // normalisation
+        phone = phone.replace(/[^\d+]/g, '');
+
         const { data, error } = await supabase
             .from('numbers')
             .select('*')
             .eq('phone', phone)
-            .single();
-        
-        if (error && error.code !== 'PGRST116') {
-            throw error;
-        }
-        
+            .maybeSingle();
+
+        if (error) throw error;
+
         if (!data) {
             return res.json({
                 found: false,
@@ -32,7 +33,7 @@ router.get('/check/:phone', async (req, res) => {
                 message: 'Diese Nummer wurde noch nicht gemeldet'
             });
         }
-        
+
         const categoryNames = {
             enkeltrick: 'Enkeltrick',
             polizei: 'Falsche Polizisten',
@@ -42,7 +43,7 @@ router.get('/check/:phone', async (req, res) => {
             gewinnspiel: 'Gewinnspiel',
             sonstiges: 'Sonstiges'
         };
-        
+
         res.json({
             found: true,
             status: data.status,
@@ -54,7 +55,7 @@ router.get('/check/:phone', async (req, res) => {
             },
             message: `Diese Nummer wurde ${data.reports_count}x gemeldet`
         });
-        
+
     } catch (error) {
         console.error('Check number error:', error);
         res.status(500).json({
@@ -141,7 +142,9 @@ router.get('/stats', optionalAuth, async (req, res) => {
 // ===================================
 router.delete('/:phone', [verifyToken, isAdmin], async (req, res) => {
     try {
-        const phone = decodeURIComponent(req.params.phone);
+        let phone = decodeURIComponent(req.params.phone);
+
+phone = phone.replace(/[^\d+]/g, '');
         
         const { error } = await supabase
             .from('numbers')

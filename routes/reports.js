@@ -5,7 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { supabase } = require('../config/supabase');
+const { supabaseAdmin } = require('../config/supabase');
 const { verifyToken, isAdmin, optionalAuth } = require('../middleware/auth');
 
 // ===================================
@@ -22,10 +22,13 @@ router.post('/', [
     }
     
     try {
-        const { phone, category, details = '' } = req.body;
+        let { phone, category, details = '' } = req.body;
+
+
+    phone = phone.replace(/[^\d+]/g, '');
         
         // Insert report
-        const { data: report, error } = await supabase
+        const { data: report, error } = await supabaseAdmin
             .from('reports')
             .insert([{
                 phone,
@@ -39,16 +42,16 @@ router.post('/', [
         if (error) throw error;
         
         // Update or create number in numbers table
-        const { data: existingNumber } = await supabase
+        const { data: existingNumber } = await supabaseAdmin
             .from('numbers')
             .select('*')
             .eq('phone', phone)
-            .single();
+            .maybeSingle();
         
         if (existingNumber) {
             // Update
             const newCount = (existingNumber.reports_count || 1) + 1;
-            await supabase
+            await supabaseAdmin
                 .from('numbers')
                 .update({
                     reports_count: newCount,
@@ -59,7 +62,7 @@ router.post('/', [
                 .eq('phone', phone);
         } else {
             // Insert
-            await supabase
+            await supabaseAdmin
                 .from('numbers')
                 .insert([{
                     phone,
@@ -76,11 +79,16 @@ router.post('/', [
         });
         
     } catch (error) {
-        console.error('Create report error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Speichern der Meldung'
-        });
-    }
+    console.error('Create report error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error hint:', error.hint);
+    console.error('Error code:', error.code);
+    
+    res.status(500).json({
+        error: 'Fehler beim Speichern der Meldung',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+}
 });
 
 // ===================================
@@ -91,7 +99,7 @@ router.get('/', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { limit = 50, category } = req.query;
         
-        let query = supabase
+        let query = supabaseAdmin
             .from('reports')
             .select('*')
             .order('reported_at', { ascending: false })
@@ -124,7 +132,7 @@ router.get('/', [verifyToken, isAdmin], async (req, res) => {
 // ===================================
 router.get('/stats', [verifyToken, isAdmin], async (req, res) => {
     try {
-        const { data: reports } = await supabase
+        const { data: reports } = await supabaseAdmin
             .from('reports')
             .select('category');
         
@@ -153,7 +161,7 @@ router.get('/stats', [verifyToken, isAdmin], async (req, res) => {
 // ===================================
 router.delete('/:id', [verifyToken, isAdmin], async (req, res) => {
     try {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('reports')
             .delete()
             .eq('id', req.params.id);
