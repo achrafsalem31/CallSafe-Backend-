@@ -103,5 +103,8 @@ router.get('/me', verifyToken, async (req, res) => {
         res.status(500).json({ error: 'Fehler beim Abrufen der Benutzerdaten' });
     }
 });
-
+// Logout Route
+router.post('/logout', (req, res) => {
+    res.status(200).json({ message: 'Erfolgreich abgemeldet' });
+});
 module.exports = router;
