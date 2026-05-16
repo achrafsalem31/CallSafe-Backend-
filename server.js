@@ -31,6 +31,7 @@ const trainingRoutes = require('./routes/training');
 const userRoutes = require('./routes/users');
 const reportRoutes = require('./routes/reports');
 const numbersRoutes = require('./routes/numbers');
+const contactRoutes = require('./routes/contact');
 
 const PORT = process.env.PORT || 3000;
 
@@ -78,6 +79,7 @@ app.use('/api/training', trainingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/numbers', numbersRoutes);
+app.use('/api/contact', contactRoutes);
 
 // ===================================
 // Error Handling

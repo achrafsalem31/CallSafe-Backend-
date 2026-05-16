@@ -1,0 +1,57 @@
+// ===================================
+// routes/contact.js
+// POST /api/contact
+// ===================================
+
+const express = require('express');
+const router = express.Router();
+const { body, validationResult } = require('express-validator');
+const { supabase } = require('../config/supabase');
+
+/**
+ * POST /api/contact
+ * Speichert eine Kontaktanfrage in der Tabelle contact_messages
+ */
+router.post(
+    '/',
+    [
+        body('name').trim().notEmpty().withMessage('Name ist erforderlich'),
+        body('email').isEmail().normalizeEmail().withMessage('Ungültige E-Mail-Adresse'),
+        body('phone').optional({ nullable: true, checkFalsy: true }).trim(),
+        body('category').trim().notEmpty().withMessage('Kategorie ist erforderlich'),
+        body('message').trim().isLength({ min: 10 }).withMessage('Nachricht muss mindestens 10 Zeichen enthalten'),
+    ],
+    async (req, res) => {
+        // Validation check
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ error: 'Ungültige Eingabe', details: errors.array() });
+        }
+
+        const { name, email, phone, category, message } = req.body;
+
+        try {
+            const { error } = await supabase.from('contact_messages').insert([
+                {
+                    name,
+                    email,
+                    phone: phone || null,
+                    category,
+                    message,
+                    created_at: new Date().toISOString(),
+                },
+            ]);
+
+            if (error) throw error;
+
+            console.log(`✉️  Neue Kontaktanfrage von ${name} <${email}> [${category}]`);
+
+            return res.status(201).json({ message: 'Nachricht erfolgreich gesendet' });
+        } catch (err) {
+            console.error('Contact route error:', err);
+            return res.status(500).json({ error: 'Fehler beim Speichern der Nachricht' });
+        }
+    }
+);
+
+module.exports = router;
