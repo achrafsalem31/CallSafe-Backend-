@@ -1,279 +1,126 @@
-// ===================================
-// Quiz Routes
-// ===================================
-
 const express = require('express');
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
-const { supabase } = require('../config/supabase');
-const { verifyToken, isAdmin, optionalAuth } = require('../middleware/auth');
 
-// ===================================
-// GET /api/quiz
-// Get all quizzes (public)
-// ===================================
-router.get('/', optionalAuth, async (req, res) => {
+// ==========================================
+// 1. GET /api/quiz - جلب كاع الكويزات والأسئلة دياولهم من Supabase
+// ==========================================
+router.get('/', async (req, res) => {
     try {
-        const { category, limit = 50 } = req.query;
+        const supabase = req.app.get('supabase'); // الكلاينت الموحد والمأمن
         
-        let query = supabase
-            .from('quizzes')
-            .select('*, questions(*)')
-            .eq('published', true)
-            .order('created_at', { ascending: false })
-            .limit(limit);
-        
-        if (category) {
-            query = query.eq('category', category);
-        }
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        res.json({
-            quizzes: data,
-            count: data.length
-        });
-        
-    } catch (error) {
-        console.error('Get quizzes error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Abrufen der Quizze'
-        });
-    }
-});
-
-// ===================================
-// GET /api/quiz/:id
-// Get single quiz
-// ===================================
-router.get('/:id', async (req, res) => {
-    try {
         const { data, error } = await supabase
             .from('quizzes')
-            .select('*, questions(*)')
-            .eq('id', req.params.id)
-            .single();
-        
+            .select(`
+                id, title, description, category, published,
+                questions (id, question, options, correct_answer, explanation, scenario)
+            `);
+
         if (error) throw error;
-        
-        if (!data) {
-            return res.status(404).json({
-                error: 'Quiz nicht gefunden'
-            });
-        }
-        
-        res.json({ quiz: data });
-        
-    } catch (error) {
-        console.error('Get quiz error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Abrufen des Quiz'
-        });
+        return res.status(200).json({ quizzes: data });
+    } catch (err) {
+        console.error('❌ Fehler beim Laden der Quizzes:', err.message);
+        return res.status(500).json({ error: 'Fehler beim Laden للـ Quizze' });
     }
 });
 
-// ===================================
-// POST /api/quiz
-// Create new quiz (Admin only)
-// ===================================
-router.post('/', [verifyToken, isAdmin], [
-    body('title').trim().notEmpty(),
-    body('description').trim().notEmpty(),
-    body('category').isIn(['enkeltrick', 'polizei', 'bank', 'techsupport', 'gewinnspiel', 'allgemein']),
-    body('questions').isArray({ min: 1 })
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-    
+// ==========================================
+// 2. POST /api/quiz - إنشاء كويز جديد والأسئلة ديالو (Erstellen & Speichern)
+// ==========================================
+router.post('/', async (req, res) => {
     try {
-        const { title, description, category, questions, published = false } = req.body;
-        
-        // Create quiz
-        const { data: quiz, error: quizError } = await supabase
+        const supabase = req.app.get('supabase');
+        const { title, description, category, published, questions } = req.body;
+
+        // أ) إدخال الكويز فـ جدول quizzes
+        const { data: newQuiz, error: quizError } = await supabase
             .from('quizzes')
-            .insert([{
-                title,
-                description,
-                category,
-                published,
-                created_by: req.user.id,
-                created_at: new Date().toISOString()
-            }])
+            .insert([{ title, description, category, published: published || false }])
             .select()
             .single();
-        
+
         if (quizError) throw quizError;
-        
-        // Create questions
-        const questionsWithQuizId = questions.map(q => ({
-            quiz_id: quiz.id,
-            question: q.question,
-            options: q.options,
-            correct_answer: q.correct_answer,
-            explanation: q.explanation,
-            scenario: q.scenario || null
-        }));
-        
-        const { error: questionsError } = await supabase
-            .from('questions')
-            .insert(questionsWithQuizId);
-        
-        if (questionsError) throw questionsError;
-        
-        res.status(201).json({
-            message: 'Quiz erstellt',
-            quiz: quiz
-        });
-        
-    } catch (error) {
-        console.error('Create quiz error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Erstellen des Quiz'
-        });
+
+        // ب) إدخال الأسئلة ديريكت ومربوطين بالـ quiz_id
+        if (questions && questions.length > 0) {
+            const formattedQuestions = questions.map(q => ({
+                quiz_id: newQuiz.id,
+                question: q.question,
+                options: q.options,
+                correct_answer: q.correct_answer,
+                explanation: q.explanation,
+                scenario: q.scenario || null
+            }));
+
+            const { error: qError } = await supabase
+                .from('questions')
+                .insert(formattedQuestions);
+
+            if (qError) throw qError;
+        }
+
+        return res.status(201).json({ message: 'Quiz erfolgreich erstellt!', quiz: newQuiz });
+    } catch (err) {
+        console.error('❌ Fehler beim Erstellen:', err.message);
+        return res.status(500).json({ error: err.message });
     }
 });
 
-// ===================================
-// PUT /api/quiz/:id
-// Update quiz (Admin only)
-// ===================================
-router.put('/:id', [verifyToken, isAdmin], async (req, res) => {
+// ==========================================
+// 3. PUT /api/quiz/:id - تعديل كويز قديم وأسلته (Bearbeiten)
+// ==========================================
+router.put('/:id', async (req, res) => {
     try {
-        const { title, description, category, published } = req.body;
-        
-        const { data, error } = await supabase
+        const supabase = req.app.get('supabase');
+        const { title, description, category, published, questions } = req.body;
+        const quizId = req.params.id;
+
+        // أ) تحديث بيانات الكويز الرئيسي
+        const { error: quizError } = await supabase
             .from('quizzes')
-            .update({
-                title,
-                description,
-                category,
-                published,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', req.params.id)
-            .select()
-            .single();
-        
-        if (error) throw error;
-        
-        res.json({
-            message: 'Quiz aktualisiert',
-            quiz: data
-        });
-        
-    } catch (error) {
-        console.error('Update quiz error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Aktualisieren des Quiz'
-        });
+            .update({ title, description, category, published })
+            .eq('id', quizId);
+
+        if (quizError) throw quizError;
+
+        // ب) تحديث الأسئلة: كنمسحو القدام ونحطو الجداد للي جاو من الـ Form Builder
+        if (questions) {
+            await supabase.from('questions').delete().eq('quiz_id', quizId);
+
+            if (questions.length > 0) {
+                const formattedQuestions = questions.map(q => ({
+                    quiz_id: quizId,
+                    question: q.question,
+                    options: q.options,
+                    correct_answer: q.correct_answer,
+                    explanation: q.explanation,
+                    scenario: q.scenario || null
+                }));
+                const { error: qError } = await supabase.from('questions').insert(formattedQuestions);
+                if (qError) throw qError;
+            }
+        }
+
+        return res.status(200).json({ message: 'Quiz erfolgreich aktualisiert!' });
+    } catch (err) {
+        console.error('❌ Fehler beim Aktualisieren:', err.message);
+        return res.status(500).json({ error: err.message });
     }
 });
 
-// ===================================
-// DELETE /api/quiz/:id
-// Delete quiz (Admin only)
-// ===================================
-router.delete('/:id', [verifyToken, isAdmin], async (req, res) => {
+// ==========================================
+// 4. DELETE /api/quiz/:id - مسح كويز نهائياً
+// ==========================================
+router.delete('/:id', async (req, res) => {
     try {
-        // Delete questions first (cascade)
-        await supabase
-            .from('questions')
-            .delete()
-            .eq('quiz_id', req.params.id);
-        
-        // Delete quiz
-        const { error } = await supabase
-            .from('quizzes')
-            .delete()
-            .eq('id', req.params.id);
-        
-        if (error) throw error;
-        
-        res.json({
-            message: 'Quiz gelöscht'
-        });
-        
-    } catch (error) {
-        console.error('Delete quiz error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Löschen des Quiz'
-        });
-    }
-});
+        const supabase = req.app.get('supabase');
+        const quizId = req.params.id;
 
-// ===================================
-// POST /api/quiz/:id/result
-// Submit quiz result
-// ===================================
-router.post('/:id/result', verifyToken, [
-    body('score').isInt({ min: 0 }),
-    body('total').isInt({ min: 1 }),
-    body('answers').isArray()
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-    
-    try {
-        const { score, total, answers } = req.body;
-        
-        const { data, error } = await supabase
-            .from('quiz_results')
-            .insert([{
-                quiz_id: req.params.id,
-                user_id: req.user.id,
-                score,
-                total,
-                percentage: Math.round((score / total) * 100),
-                answers: JSON.stringify(answers),
-                completed_at: new Date().toISOString()
-            }])
-            .select()
-            .single();
-        
+        const { error } = await supabase.from('quizzes').delete().eq('id', quizId);
         if (error) throw error;
-        
-        res.status(201).json({
-            message: 'Ergebnis gespeichert',
-            result: data
-        });
-        
-    } catch (error) {
-        console.error('Submit result error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Speichern des Ergebnisses'
-        });
-    }
-});
 
-// ===================================
-// GET /api/quiz/:id/results
-// Get quiz results (Admin only)
-// ===================================
-router.get('/:id/results', [verifyToken, isAdmin], async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('quiz_results')
-            .select('*, users(name, email)')
-            .eq('quiz_id', req.params.id)
-            .order('completed_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        res.json({
-            results: data
-        });
-        
-    } catch (error) {
-        console.error('Get results error:', error);
-        res.status(500).json({
-            error: 'Fehler beim Abrufen der Ergebnisse'
-        });
+        return res.status(200).json({ message: 'Quiz erfolgreich gelöscht!' });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
     }
 });
 
