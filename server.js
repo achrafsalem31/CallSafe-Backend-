@@ -6,9 +6,17 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+const path = require('path');
 
+// 1️⃣ شحن الـ .env بالمسار المضمون ديريكت
+require('dotenv').config();
 const app = express();
+
+// 2️⃣ إنشاء وتثبيت Supabase فـ الـ app (خاصو يكون هنايا قبل الـ Routes!)
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);app.set('supabase', supabase);
+
+console.log('✅ Supabase Client initialisiert und an app gebunden');
 
 // CORS
 app.use(cors({
@@ -16,15 +24,13 @@ app.use(cors({
     credentials: true
 }));
 
-
-// Import Routes
+// 3️⃣ عاد هنا كيجيو الـ Import Routes دياولك مورا ما تسبت سوبابيس
 const authRoutes = require('./routes/auth');
 const quizRoutes = require('./routes/quiz');
 const trainingRoutes = require('./routes/training');
 const userRoutes = require('./routes/users');
 const reportRoutes = require('./routes/reports');
 const numbersRoutes = require('./routes/numbers');
-
 
 const PORT = process.env.PORT || 3000;
 
@@ -34,7 +40,6 @@ const PORT = process.env.PORT || 3000;
 
 // Security Headers
 app.use(helmet());
-
 
 // Body Parser
 app.use(express.json());
