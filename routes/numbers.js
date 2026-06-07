@@ -1,16 +1,10 @@
-// ===================================
-// Numbers Routes
-// ===================================
 
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { verifyToken, isAdmin, optionalAuth } = require('../middleware/auth');
 
-// ===================================
-// GET /api/numbers/check/:phone
-// Check if phone number is reported
-// ===================================
+
 router.get('/check/:phone', async (req, res) => {
     try {
         let phone = decodeURIComponent(req.params.phone || '');
@@ -64,10 +58,7 @@ router.get('/check/:phone', async (req, res) => {
     }
 });
 
-// ===================================
-// GET /api/numbers
-// Get all reported numbers (Admin only)
-// ===================================
+
 router.get('/', async (req, res) => {
     try {
         const { limit = 100, status } = req.query;
@@ -99,10 +90,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ===================================
-// GET /api/numbers/stats
-// Get numbers statistics
-// ===================================
+
 router.get('/stats', optionalAuth, async (req, res) => {
     try {
         const { data } = await supabase
@@ -136,10 +124,7 @@ router.get('/stats', optionalAuth, async (req, res) => {
     }
 });
 
-// ===================================
-// DELETE /api/numbers/:phone
-// Delete number (Admin only)
-// ===================================
+
 router.delete('/:phone', [verifyToken, isAdmin], async (req, res) => {
     try {
         let phone = decodeURIComponent(req.params.phone);

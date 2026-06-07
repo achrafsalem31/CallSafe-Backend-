@@ -1,16 +1,10 @@
-// ===================================
-// Users Routes
-// ===================================
 
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 
-// ===================================
-// GET /api/users
-// Get all users (Admin only)
-// ===================================
+
 router.get('/', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -33,10 +27,7 @@ router.get('/', [verifyToken, isAdmin], async (req, res) => {
     }
 });
 
-// ===================================
-// GET /api/users/:id
-// Get single user (Admin only)
-// ===================================
+
 router.get('/:id', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -57,10 +48,7 @@ router.get('/:id', [verifyToken, isAdmin], async (req, res) => {
     }
 });
 
-// ===================================
-// GET /api/users/:id/results
-// Get user's quiz results (Admin only)
-// ===================================
+
 router.get('/:id/results', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -83,10 +71,7 @@ router.get('/:id/results', [verifyToken, isAdmin], async (req, res) => {
     }
 });
 
-// ===================================
-// PUT /api/users/:id/role
-// Update user role (Admin only)
-// ===================================
+
 router.put('/:id/role', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { role } = req.body;
@@ -119,10 +104,7 @@ router.put('/:id/role', [verifyToken, isAdmin], async (req, res) => {
     }
 });
 
-// ===================================
-// DELETE /api/users/:id
-// Delete user (Admin only)
-// ===================================
+
 router.delete('/:id', [verifyToken, isAdmin], async (req, res) => {
     try {
         // Prevent self-deletion

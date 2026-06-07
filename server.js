@@ -1,6 +1,3 @@
-// ===================================
-// SECUREME Backend Server
-// ===================================
 
 const express = require('express');
 const cors = require('cors');
@@ -8,11 +5,9 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-// 1️⃣ شحن الـ .env بالمسار المضمون ديريكت
 require('dotenv').config();
 const app = express();
 
-// 2️⃣ إنشاء وتثبيت Supabase فـ الـ app (خاصو يكون هنايا قبل الـ Routes!)
 const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);app.set('supabase', supabase);
 
@@ -24,7 +19,6 @@ app.use(cors({
     credentials: true
 }));
 
-// 3️⃣ عاد هنا كيجيو الـ Import Routes دياولك مورا ما تسبت سوبابيس
 const authRoutes = require('./routes/auth');
 const quizRoutes = require('./routes/quiz');
 const trainingRoutes = require('./routes/training');
@@ -35,18 +29,13 @@ const contactRoutes = require('./routes/contact');
 
 const PORT = process.env.PORT || 3000;
 
-// ===================================
-// Middleware
-// ===================================
 
-// Security Headers
+
 app.use(helmet());
 
-// Body Parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 Minuten
     max: 100 // Max 100 Requests pro IP
@@ -63,7 +52,6 @@ app.use((req, res, next) => {
 // Routes
 // ===================================
 
-// Health Check
 app.get('/', (req, res) => {
     res.json({
         message: 'SECUREME API Server',
@@ -110,14 +98,14 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log('');
     console.log('═══════════════════════════════════════');
-    console.log('🛡️  SECUREME Backend Server');
+    console.log(' SECUREME Backend Server');
     console.log('═══════════════════════════════════════');
-    console.log(`📡 Server läuft auf: http://localhost:${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'not set'}`);
+    console.log(` Server läuft auf: http://localhost:${PORT}`);
+    console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(` Frontend URL: ${process.env.FRONTEND_URL || 'not set'}`);
     console.log('═══════════════════════════════════════');
     console.log('');
-    console.log('📋 Verfügbare Endpunkte:');
+    console.log(' Verfügbare Endpunkte:');
     console.log('  POST   /api/auth/login');
     console.log('  POST   /api/auth/register');
     console.log('  GET    /api/quiz');
