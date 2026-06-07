@@ -1,17 +1,10 @@
-// ===================================
-// routes/contact.js
-// POST /api/contact
-// ===================================
 
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/supabase');
 
-/**
- * POST /api/contact
- * Speichert eine Kontaktanfrage in der Tabelle contact_messages
- */
+
 router.post(
     '/',
     [

@@ -1,12 +1,9 @@
-// ===================================
-// routes/training.js  
-// ===================================
 
 const express = require('express');
 const router = express.Router();
 
 // ==========================================
-// GET /api/training  — alle Module laden
+// Training  — alle Module laden
 // ==========================================
 router.get('/', async (req, res) => {
     try {
@@ -23,9 +20,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ==========================================
-// GET /api/training/:id  — einzelnes Modul
-// ==========================================
+
 router.get('/:id', async (req, res) => {
     try {
         const supabase = req.app.get('supabase');
@@ -42,9 +37,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// ==========================================
-// POST /api/training  — neues Modul erstellen
-// ==========================================
+
 router.post('/', async (req, res) => {
     try {
         const supabase = req.app.get('supabase');
@@ -78,9 +71,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// ==========================================
-// PUT /api/training/:id  — Modul bearbeiten
-// ==========================================
+
 router.put('/:id', async (req, res) => {
     try {
         const supabase = req.app.get('supabase');
@@ -101,9 +92,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// ==========================================
-// DELETE /api/training/:id  — Modul löschen
-// ==========================================
+
 router.delete('/:id', async (req, res) => {
     try {
         const supabase = req.app.get('supabase');

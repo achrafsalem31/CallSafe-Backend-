@@ -1,6 +1,3 @@
-// ===================================
-// Reports Routes
-// ===================================
 
 const express = require('express');
 const router = express.Router();
@@ -8,10 +5,7 @@ const { body, validationResult } = require('express-validator');
 const { supabaseAdmin } = require('../config/supabase');
 const { verifyToken, isAdmin, optionalAuth } = require('../middleware/auth');
 
-// ===================================
-// POST /api/reports
-// Submit fraud report (public)
-// ===================================
+
 router.post('/', [
     body('phone').trim().notEmpty(),
     body('category').isIn(['enkeltrick', 'polizei', 'schock', 'bank', 'techsupport', 'gewinnspiel', 'sonstiges'])
@@ -41,7 +35,6 @@ router.post('/', [
         
         if (error) throw error;
         
-        // Update or create number in numbers table
         const { data: existingNumber } = await supabaseAdmin
             .from('numbers')
             .select('*')
@@ -49,7 +42,6 @@ router.post('/', [
             .maybeSingle();
         
         if (existingNumber) {
-            // Update
             const newCount = (existingNumber.reports_count || 1) + 1;
             await supabaseAdmin
                 .from('numbers')
@@ -61,7 +53,6 @@ router.post('/', [
                 })
                 .eq('phone', phone);
         } else {
-            // Insert
             await supabaseAdmin
                 .from('numbers')
                 .insert([{
@@ -91,10 +82,7 @@ router.post('/', [
 }
 });
 
-// ===================================
-// GET /api/reports
-// Get all reports (Admin only)
-// ===================================
+
 router.get('/', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { limit = 50, category } = req.query;
@@ -126,10 +114,7 @@ router.get('/', [verifyToken, isAdmin], async (req, res) => {
     }
 });
 
-// ===================================
-// GET /api/reports/stats
-// Get reports statistics (Admin only)
-// ===================================
+
 router.get('/stats', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { data: reports } = await supabaseAdmin
@@ -155,10 +140,7 @@ router.get('/stats', [verifyToken, isAdmin], async (req, res) => {
     }
 });
 
-// ===================================
-// DELETE /api/reports/:id
-// Delete report (Admin only)
-// ===================================
+
 router.delete('/:id', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { error } = await supabaseAdmin

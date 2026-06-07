@@ -1,12 +1,7 @@
-// ===================================
-// Authentication Middleware
-// ===================================
 
 const jwt = require('jsonwebtoken');
 
-/**
- * Verify JWT Token
- */
+
 const verifyToken = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -27,9 +22,7 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-/**
- * Check if user is admin
- */
+
 const isAdmin = (req, res, next) => {
     if (!req.user || req.user.role !== 'admin') {
         return res.status(403).json({
@@ -39,9 +32,7 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
-/**
- * Optional authentication (doesn't fail if no token)
- */
+
 const optionalAuth = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     
