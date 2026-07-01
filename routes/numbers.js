@@ -1,21 +1,12 @@
-// ===================================
-// routes/numbers.js — KORRIGIERTE VERSION
-// ===================================
-// ANGEPASST an die deutschen Spaltennamen in safe_numbers:
-// "Name", "Nummer", "Kategorie", "Stadt", "Beschreibung"
-// (1:1 identisch mit massive_whitelist.csv)
+// routes/numbers.js
 
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { verifyToken, isAdmin, optionalAuth } = require('../middleware/auth');
 
-// ==========================================
-// Telefonnummer normalisieren — EINHEITLICH
-// ==========================================
-// Entfernt Leerzeichen, Klammern, Bindestriche
-// und wandelt "0049..." / "0176..." in "+49..." um,
-// damit alle Schreibweisen matchen.
+// Telefonnummer normalisieren —
+
 function normalizePhone(rawPhone) {
     let phone = String(rawPhone).replace(/[^\d+]/g, '');
 
@@ -28,10 +19,7 @@ function normalizePhone(rawPhone) {
     return phone;
 }
 
-// ==========================================
 // GET /api/numbers/check/:phone
-// Prüft: 1. Whitelist (safe_numbers) → 2. Blacklist (numbers) → 3. unbekannt
-// ==========================================
 router.get('/check/:phone', async (req, res) => {
     try {
         let phone = decodeURIComponent(req.params.phone || '');
@@ -41,11 +29,7 @@ router.get('/check/:phone', async (req, res) => {
             return res.status(400).json({ error: 'Ungültige Telefonnummer' });
         }
 
-        // -----------------------------------------
-        // SCHRITT 1: Whitelist prüfen (safe_numbers)
-        // ACHTUNG: Spaltennamen sind GROSS- und KLEINSCHREIBUNG
-        // -sensitiv wegen der Anführungszeichen im SQL ("Nummer" statt nummer)
-        // -----------------------------------------
+        
         const { data: safeEntry, error: safeError } = await supabase
             .from('safe_numbers')
             .select('*')
@@ -70,9 +54,8 @@ router.get('/check/:phone', async (req, res) => {
             });
         }
 
-        // -----------------------------------------
-        // SCHRITT 2: Blacklist prüfen (numbers)
-        // -----------------------------------------
+        // Blacklist prüfen (numbers)
+
         const { data: blacklistEntry, error: blacklistError } = await supabase
             .from('numbers')
             .select('*')
@@ -106,9 +89,7 @@ router.get('/check/:phone', async (req, res) => {
             });
         }
 
-        // -----------------------------------------
-        // SCHRITT 3: Nummer unbekannt
-        // -----------------------------------------
+        // Nummer unbekannt
         return res.json({
             found: false,
             whitelisted: false,
@@ -191,9 +172,7 @@ router.get('/stats', optionalAuth, async (req, res) => {
 });
 
 
-// ==========================================
-// NEU: GET /api/numbers/safe — Whitelist anzeigen (Admin)
-// ==========================================
+
 router.get('/safe', [verifyToken, isAdmin], async (req, res) => {
     try {
         const { limit = 500, category } = req.query;
@@ -220,9 +199,7 @@ router.get('/safe', [verifyToken, isAdmin], async (req, res) => {
 });
 
 
-// ==========================================
-// NEU: POST /api/numbers/safe — Whitelist-Eintrag hinzufügen (Admin)
-// ==========================================
+
 router.post('/safe', [verifyToken, isAdmin], async (req, res) => {
     try {
         let { name, phone, category, city, description } = req.body;
@@ -260,9 +237,7 @@ router.post('/safe', [verifyToken, isAdmin], async (req, res) => {
 });
 
 
-// ==========================================
-// NEU: DELETE /api/numbers/safe/:phone — Whitelist-Eintrag löschen (Admin)
-// ==========================================
+
 router.delete('/safe/:phone', [verifyToken, isAdmin], async (req, res) => {
     try {
         let phone = decodeURIComponent(req.params.phone);
