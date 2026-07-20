@@ -11,11 +11,27 @@ const app = express();
 const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);app.set('supabase', supabase);
 
-console.log('✅ Supabase Client initialisiert und an app gebunden');
+console.log('Supabase Client initialisiert und an app gebunden');
 
 // CORS
+const allowedOrigins = [
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-    origin: ['http://127.0.0.1:5500', 'http://localhost:5500'],
+    origin(origin, callback) {
+        if (!origin) {
+            return callback(null, true);
+        }
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error(`Origin non autorisée: ${origin}`));
+    },
     credentials: true
 }));
 
@@ -37,8 +53,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 Minuten
-    max: 100 // Max 100 Requests pro IP
+    windowMs: 15 * 60 * 1000, 
+    max: 100 
 });
 app.use('/api/', limiter);
 
@@ -100,7 +116,7 @@ app.listen(PORT, () => {
     console.log('═══════════════════════════════════════');
     console.log(' SECUREME Backend Server');
     console.log('═══════════════════════════════════════');
-    console.log(` Server läuft auf: http://localhost:${PORT}`);
+    console.log(` Server läuft auf Port ${PORT}`);
     console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(` Frontend URL: ${process.env.FRONTEND_URL || 'not set'}`);
     console.log('═══════════════════════════════════════');
